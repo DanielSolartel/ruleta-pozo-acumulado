@@ -1,4 +1,4 @@
-# Especificación Técnica Inicial — Ruleta con Pozo Acumulado (V0.2)
+# Especificación Técnica — Ruleta con Pozo Acumulado (V0.2)
 
 2026-09-16 · @Someone
 
@@ -396,19 +396,22 @@ Las tres preguntas quedaron respondidas por el product owner, con recomendacione
 
 Con esto, ningún ítem de la especificación queda pendiente de una regla de negocio; todo lo que restaba era, como ya se documentaba desde V0.1.1, mecánica ya definida esperando un valor.
 
-## K. Criterios de aceptación verificables para V0.1.6
+## K. Criterios de aceptación verificables para V0.2
 
-- [ ] N1–N11 resueltos y verificables en el cuerpo del documento (ver L.3).
-- [ ] N12, N14, N15 resueltos y verificables en el cuerpo del documento (ver L.4).
-- [ ] N13 (completado vía N16), N16, N17, N18 resueltos y verificables en el cuerpo del documento (ver L.5).
-- [ ] N19 resuelto y verificable en el cuerpo del documento (ver L.6, resuelto junto con N21).
-- [ ] N20–N22 resueltos y verificables en el cuerpo del documento (ver L.6).
-- [ ] J.1–J.3 marcadas como bloqueantes, con la mecánica que dependa de ellas completamente definida al margen del valor.
-- [ ] Sección N (repositorio y versionado) presente y coherente con el resto del documento.
-- [ ] Secciones L.1–L.6 con estado real (no aspiracional): cada hallazgo apunta a texto verificable en el cuerpo, no solo a la propia tabla.
+- [ ] Estructura de carpetas del repositorio conforme a la sección N.
+- [ ] Esqueleto de backend que arranca y responde `200` en `GET /health`.
+- [ ] Esqueleto de frontend que arranca y muestra la página mínima ("Ruleta con Pozo Acumulado — V0.2 setup").
+- [ ] `backend/src/config/game-rules.ts` con los valores de J.1–J.3 leídos de variables de entorno con sus defaults (`POT_MINIMUM=100`, `CONTRIBUTION_AMOUNT=1`, `GOLD_PROBABILITY_DENOMINATOR=100000`).
+- [ ] `backend/prisma/schema.prisma` con el modelo E completo (tablas, constraints únicos, `ON DELETE RESTRICT` en FKs de historial; índices únicos parciales documentados como SQL crudo a añadir en la migración).
+- [ ] `docker-compose.yml` con los servicios `postgres`, `backend`, `frontend`, y volumen persistente para Postgres.
+- [ ] `.github/workflows/ci.yml` con jobs de lint, typecheck y test, Node 20 LTS y Postgres como servicio.
+- [ ] Archivos obligatorios en la raíz según N (`README.md`, `LICENSE`, `.gitignore`, `.env.example`, `.editorconfig`, `CONTRIBUTING.md`, `CHANGELOG.md`).
+- [ ] Tag `v0.2.0` aplicado en `main`.
+- [ ] Sin lógica de negocio real (auth, spins, RNG, pozo) — solo esqueleto.
+- [ ] J.1–J.3 cerradas en la spec (ver J, L.7), no bloqueantes.
+- [ ] Secciones L.1–L.8 con estado real (no aspiracional): cada hallazgo o entrega apunta a texto verificable en el cuerpo del documento o, para la implementación, en los archivos críticos pegados en la respuesta de entrega.
 - [ ] El documento es autocontenido.
-- [ ] Sin código de implementación.
-- [ ] DeepSeek emite veredicto explícito sobre V0.1.6 — esta especificación no se autodeclara cerrada ni aprobada.
+- [ ] DeepSeek emite veredicto explícito sobre la implementación de V0.2 — pendiente hasta que pueda leer los archivos críticos (ver L.8).
 
 ## L. Resolución de hallazgos de auditoría
 
@@ -512,6 +515,15 @@ Esto cierra retroactivamente, por completo, las salvedades "parcial: pendiente d
 
 **Nota de implementación del auditor**: los tres valores viven en un módulo centralizado de configuración (`backend/src/config/game-rules.ts`), leídos con sus defaults desde variables de entorno, para que pruebas unitarias y migraciones los consuman desde un único lugar en vez de tenerlos dispersos por el código.
 
+### L.8 Auditoría V0.2 (entrega de repositorio)
+
+| Componente | Veredicto de DeepSeek | Estado |
+| --- | --- | --- |
+| Spec V0.2 | **Aprobada con cambios menores**: valores J.1–J.3 y L.7 correctos; desincronización de versión detectada en K (seguía en "V0.1.6") y N (drift de "V0.1.5") | Corregido en esta ronda (P1–P4: título, K, N, M) |
+| Implementación (código) | **No auditable todavía** — el auditor recibe texto, no puede abrir el `.tar.gz` adjunto | Se resuelve en esta misma entrega: los 10 archivos críticos se pegan íntegros en la respuesta (fuera de este documento), y el paquete pasa a `.zip` con `FILES.txt` listando cada archivo versionado |
+
+Esta fila no se autodeclara "aprobada": refleja el veredicto ya emitido por DeepSeek sobre la spec V0.2, y dispone lo pendiente para que pueda evaluar la implementación en la siguiente ronda.
+
 ## M. Estado de cierre
 
 **Estado en esta entrega (V0.2)**
@@ -536,7 +548,7 @@ Ninguna pregunta de negocio sigue abierta. Lo que resta antes de V1.0 son decisi
 
 **Veredicto**
 
-Esta actualización de la spec para V0.2 no se autodeclara "cerrada" ni "aprobada" en un sentido de auditoría — refleja decisiones ya tomadas por el product owner. La implementación de código de V0.2 en adelante sigue sujeta a revisión de DeepSeek según lo define N (reglas de PR).
+Ver L.8 para el veredicto de DeepSeek sobre esta entrega.
 
 ## N. Estrategia de repositorio y versionado
 
@@ -578,17 +590,17 @@ A partir de esta entrega, el proyecto se versiona en GitHub como un monorepo.
 └── CHANGELOG.md
 ```
 
-`backend/src/modules/{auth,spin,pot,audit}` refleja directamente los cuatro módulos internos del monolito modular decidido en C; `docs/spec/` versiona esta especificación (V0.1 a V0.1.5) junto con el código.
+`backend/src/modules/{auth,spin,pot,audit}` refleja directamente los cuatro módulos internos del monolito modular decidido en C; `docs/spec/` versiona esta especificación (V0.1 a V0.2) junto con el código.
 
 **Autor del encabezado (resuelve N19, N21)**: `@Someone` es el valor real y correcto del handle del autor tal como lo resuelve la plataforma para la cuenta que firma este documento — no es anonimización deliberada ni una variación de renderizado entre exportaciones. La cadena `@u_goVckqNU7l5fJZTCclNQ1w` que apareció en la primerísima exportación (V0.1) no correspondía a un valor real: esa exportación se generó transcribiendo el contenido manualmente, antes de adoptar en V0.1.2 el mecanismo de exportación fiable usado desde entonces; ese string fue un error de esa transcripción, no un handle legítimo previo. En consecuencia, no hay ningún "autor original" distinto que restaurar — `@Someone` es, y ha sido de forma consistente desde que las exportaciones son fiables, el único valor correcto. Cuando `docs/spec/` empiece a poblarse en V0.2, cada versión commiteada usará este mismo valor, así que no convivirán autores distintos en el historial del repositorio.
 
-**Recomendación estructural de versionado — diferida (no aplicada en V0.1.6)**: DeepSeek recomienda, una vez arranque el repositorio en V0.2, mover el número de versión a un único lugar canónico (`docs/spec/CHANGELOG.md` o un `version.md`) y que el cuerpo del documento diga "esta especificación"/"la versión actual" sin repetir el número, salvo en H y K, que quedan como referencia histórica congelada al momento de cada entrega. Se decide **diferir** esta recomendación a V0.2, no aplicarla ya en V0.1.6: aplicarla ahora exigiría reescribir de nuevo B, C, E y F —secciones que el encargo de esta ronda pedía explícitamente no tocar— para retirar el patrón "en la versión actual" que V0.1.5 ya introdujo con el mismo propósito. El patrón vigente ("la versión actual" en el cuerpo, número explícito solo en H/K/L) ya cumple el espíritu de la recomendación; formalizarlo en un archivo canónico es una mejora de mantenibilidad del repositorio, no una corrección urgente, y encaja mejor cuando el repositorio (con su propio `CHANGELOG.md`, ver arriba) exista de verdad.
+**Recomendación estructural de versionado — adoptada en espíritu desde V0.2**: con el repositorio ya creado (ver resumen de entrega de V0.2), el `CHANGELOG.md` en la raíz del repo es ahora el lugar canónico que registra cada versión —de código, y a partir de aquí también de la spec— con su propia entrada, cumpliendo el propósito que motivaba la recomendación de DeepSeek. No se crea un `docs/spec/CHANGELOG.md` separado: un único `CHANGELOG.md` para todo el repo evita mantener dos historiales paralelos. El patrón del cuerpo del documento ("la versión actual", número explícito solo en H/K/L) se mantiene sin cambios — ya cumplía la otra mitad de la recomendación desde V0.1.5.
 
 **Convención de commits**: Conventional Commits — `feat`, `fix`, `docs`, `chore`, `test`, `refactor`, `ci`, `build`, `perf`.
 
 **Estrategia de ramas**: **trunk-based**, con ramas cortas `feat/<nombre>` fusionadas a `main` por PR. Se descarta `main` + `develop`: el equipo es pequeño (Claude como desarrollador, DeepSeek como auditor) y el monolito modular se despliega como una sola unidad — una rama `develop` de larga vida solo añadiría un punto extra de divergencia y merge sin aportar aislamiento real, dado que no hay múltiples equipos ni releases paralelos que coordinar.
 
-**Convención de tags**: formato `vX.Y.Z`. Cada versión de la especificación se taguea igual que se numera: V0.1 → `v0.1.0`, V0.1.1 → `v0.1.1`, V0.1.2 → `v0.1.2`, … hasta V0.1.5 → `v0.1.5`. A partir de V0.2 (primer código), el número menor (`Y`) sigue la versión del roadmap (`v0.2.0`, `v0.3.0`…) y el número de parche (`Z`) queda reservado para correcciones dentro de esa versión de código.
+**Convención de tags**: formato `vX.Y.Z`. Cada versión de la especificación se taguea igual que se numera: V0.1 → `v0.1.0`, V0.1.1 → `v0.1.1`, V0.1.2 → `v0.1.2`, … hasta V0.1.6 → `v0.1.6`. V0.2 (primer código) se tagueó `v0.2.0`; a partir de ahí, el número menor (`Y`) sigue la versión del roadmap (`v0.2.0`, `v0.3.0`…) y el número de parche (`Z`) queda reservado para correcciones dentro de esa versión de código.
 
 **Reglas de PR**: no se hace merge a `main` si la CI falla. Toda PR requiere revisión: Claude como desarrollador abre la PR; DeepSeek revisa como auditor cuando la PR toca áreas sensibles (auth, spin, pot, RNG, seguridad) o cuando aplica por el roadmap (ver H).
 
