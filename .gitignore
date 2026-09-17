@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+node_modules/
+dist/
+build/
+coverage/
+.vscode/
+.idea/
+*.log
+__pycache__/
+.pytest_cache/
+postgres-data/
+*.tsbuildinfo
+node_modules/
