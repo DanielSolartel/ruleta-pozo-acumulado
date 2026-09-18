@@ -54,11 +54,15 @@ git clone <URL_DEL_REPO> ruleta-pozo-acumulado
 cd ruleta-pozo-acumulado
 ```
 
-Copiar las variables de entorno de ejemplo y completar los secretos localmente (nunca commitear el `.env` real):
+Copiar las variables de entorno de ejemplo:
 
 ```powershell
 Copy-Item .env.example .env
 ```
+
+**Este paso es obligatorio antes de cualquier comando de Docker Compose.** Sin un `.env` en la raíz, `docker compose config` (y por tanto `docker compose up`) falla con un error del tipo `env file ...\.env not found`, porque Compose lee `.env` para resolver las variables `${...}` del `docker-compose.yml` (no solo el backend las usa: Postgres también las necesita para `POSTGRES_USER`/`POSTGRES_PASSWORD`).
+
+`.env.example` trae `DB_USER=dev` y `DB_PASSWORD=dev` como valores dummy que ya funcionan para desarrollo local sin tocarlos — **no son para producción**. El resto de campos (`JWT_SECRET`, `REFRESH_TOKEN_PEPPER`, `EMAIL_PROVIDER_KEY`, etc.) puedes dejarlos vacíos en V0.2: todavía no hay código que los lea (eso llega en V0.3+).
 
 ### Opción A — con Docker Compose (recomendado)
 

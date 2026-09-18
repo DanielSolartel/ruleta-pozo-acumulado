@@ -59,7 +59,8 @@ model PotRound {
   winnerSpinId  String?   @unique @map("winner_spin_id")
 
   winnerUser User? @relation("RoundWinner", fields: [winnerUserId], references: [id], onDelete: Restrict)
-  spins      Spin[]
+  winnerSpin Spin? @relation("RoundWinnerSpin", fields: [winnerSpinId], references: [id], onDelete: Restrict)
+  spins      Spin[] @relation("RoundSpins")
 
   // Índice único parcial "una ronda abierta a la vez" (one_open_round):
   //   CREATE UNIQUE INDEX one_open_round ON pot_rounds ((true)) WHERE ended_at IS NULL;
@@ -83,9 +84,10 @@ model Spin {
   contributionAmount Decimal    @map("contribution_amount")
   createdAt          DateTime   @default(now()) @map("created_at")
 
-  user  User     @relation(fields: [userId], references: [id], onDelete: Restrict)
-  round PotRound @relation(fields: [roundId], references: [id], onDelete: Restrict)
-  win   PotWin?
+  user     User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  round    PotRound  @relation("RoundSpins", fields: [roundId], references: [id], onDelete: Restrict)
+  roundWon PotRound? @relation("RoundWinnerSpin")
+  win      PotWin?
   idempotencyKeys IdempotencyKey[]
 
   @@unique([userId, gameDay])

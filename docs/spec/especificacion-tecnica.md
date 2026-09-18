@@ -1,4 +1,4 @@
-# Especificación Técnica — Ruleta con Pozo Acumulado (V0.2)
+# Especificación Técnica — Ruleta con Pozo Acumulado (V0.2.1)
 
 2026-09-16 · @Someone
 
@@ -355,7 +355,8 @@ Convención de errores: `{ "error": { "code": string, "message": string, "detail
 | V0.1.4 | Correcciones de la cuarta auditoría (N12–N15, ver L.4). Auditada por DeepSeek: aprobada con cambios menores; N13 completado en V0.1.5 vía N16. |
 | V0.1.5 | Correcciones de la quinta auditoría (N16–N19, ver L.5). Auditada por DeepSeek: aprobada con cambios menores; N19 completado en V0.1.6 vía N21. |
 | V0.1.6 | Correcciones de la sexta auditoría (N20–N22, ver L.6). Auditada por DeepSeek: aprobada con cambios menores. J.1–J.3 cerradas por el product owner tras esta versión (ver J, L.7). |
-| V0.2 (esta) | Arranque del repositorio: estructura de N, esqueleto de backend/frontend, schema de Prisma sin migrar, Docker Compose, CI mínima, primer tag `v0.2.0`. Sin lógica de negocio real todavía. |
+| V0.2 | Arranque del repositorio: estructura de N, esqueleto de backend/frontend, schema de Prisma sin migrar, Docker Compose, CI mínima, primer tag `v0.2.0`. Sin lógica de negocio real todavía. |
+| V0.2.1 (esta) | Correcciones puntuales de verificacion en maquina real (Windows) por DeepSeek: A1-A15, ver L.9 - guard ESM cross-platform en app.ts, relacion FK explicita en Prisma, validacion de positividad en game-rules.ts, docker-compose sin secretos innecesarios en frontend, .env.example utilizable de verdad. Tag v0.2.1. Sin logica de negocio nueva. Pendiente de nueva auditoria de DeepSeek. |
 | V0.3 | Backend: registro/verificación/login/refresh/logout, endpoint de giro con RNG, ronda y constraint anti-doble-giro; primeras pruebas de carga ligeras; CI amplía a tests de concurrencia e idempotencia (ver N) |
 | V0.4 | Backend: lógica completa de pozo/ronda, registro histórico, pruebas de concurrencia (incluida la de A2: coherencia del RNG bajo reintento, ver I), pruebas de carga ampliadas |
 | V0.5 | Frontend: pantalla de giro conectada a la API real, animación basada en el resultado ya recibido del backend |
@@ -396,22 +397,24 @@ Las tres preguntas quedaron respondidas por el product owner, con recomendacione
 
 Con esto, ningún ítem de la especificación queda pendiente de una regla de negocio; todo lo que restaba era, como ya se documentaba desde V0.1.1, mecánica ya definida esperando un valor.
 
-## K. Criterios de aceptación verificables para V0.2
+## K. Criterios de aceptación verificables para V0.2 / V0.2.1
 
 - [ ] Estructura de carpetas del repositorio conforme a la sección N.
-- [ ] Esqueleto de backend que arranca y responde `200` en `GET /health`.
+- [ ] Esqueleto de backend que arranca y responde `200` en `GET /health` — **en Windows también** (resuelve A4, ver L.9).
 - [ ] Esqueleto de frontend que arranca y muestra la página mínima ("Ruleta con Pozo Acumulado — V0.2 setup").
-- [ ] `backend/src/config/game-rules.ts` con los valores de J.1–J.3 leídos de variables de entorno con sus defaults (`POT_MINIMUM=100`, `CONTRIBUTION_AMOUNT=1`, `GOLD_PROBABILITY_DENOMINATOR=100000`).
-- [ ] `backend/prisma/schema.prisma` con el modelo E completo (tablas, constraints únicos, `ON DELETE RESTRICT` en FKs de historial; índices únicos parciales documentados como SQL crudo a añadir en la migración).
-- [ ] `docker-compose.yml` con los servicios `postgres`, `backend`, `frontend`, y volumen persistente para Postgres.
+- [ ] `backend/src/config/game-rules.ts` con los valores de J.1–J.3 leídos de variables de entorno con sus defaults, y con validación de positividad/no negatividad (A2/A3, ver L.9).
+- [ ] `backend/prisma/schema.prisma` con el modelo E completo, incluida la relación explícita de `winnerSpinId` (A1, ver L.9).
+- [ ] `docker-compose.yml` con los servicios `postgres`, `backend`, `frontend`, volumen persistente para Postgres, y sin propagar secretos innecesarios a `frontend` (A15, ver L.9).
 - [ ] `.github/workflows/ci.yml` con jobs de lint, typecheck y test, Node 20 LTS y Postgres como servicio.
+- [ ] `lint` sin warnings de versión de TypeScript no soportada (A9, ver L.9).
+- [ ] `.env.example` con valores que permiten `docker compose up` de verdad (A14) y README con el paso de copiarlo a `.env` (A12, ver L.9).
 - [ ] Archivos obligatorios en la raíz según N (`README.md`, `LICENSE`, `.gitignore`, `.env.example`, `.editorconfig`, `CONTRIBUTING.md`, `CHANGELOG.md`).
-- [ ] Tag `v0.2.0` aplicado en `main`.
-- [ ] Sin lógica de negocio real (auth, spins, RNG, pozo) — solo esqueleto.
+- [ ] Tag `v0.2.0` y, sobre esa misma versión, `v0.2.1` aplicados en `main`.
+- [ ] Sin lógica de negocio real (auth, spins, RNG, pozo) — solo esqueleto, en V0.2 y en V0.2.1.
 - [ ] J.1–J.3 cerradas en la spec (ver J, L.7), no bloqueantes.
-- [ ] Secciones L.1–L.8 con estado real (no aspiracional): cada hallazgo o entrega apunta a texto verificable en el cuerpo del documento o, para la implementación, en los archivos críticos pegados en la respuesta de entrega.
+- [ ] Secciones L.1–L.9 con estado real (no aspiracional): cada hallazgo o entrega apunta a texto verificable en el cuerpo del documento o, para la implementación, en los archivos críticos pegados en las respuestas de entrega.
 - [ ] El documento es autocontenido.
-- [ ] DeepSeek emite veredicto explícito sobre la implementación de V0.2 — pendiente hasta que pueda leer los archivos críticos (ver L.8).
+- [ ] DeepSeek emite veredicto explícito sobre la implementación de V0.2.1 — pendiente (ver L.9).
 
 ## L. Resolución de hallazgos de auditoría
 
@@ -524,17 +527,38 @@ Esto cierra retroactivamente, por completo, las salvedades "parcial: pendiente d
 
 Esta fila no se autodeclara "aprobada": refleja el veredicto ya emitido por DeepSeek sobre la spec V0.2, y dispone lo pendiente para que pueda evaluar la implementación en la siguiente ronda.
 
+### L.9 Auditoría V0.2.1 (verificación en máquina real, Windows)
+
+DeepSeek verificó la entrega V0.2 en una máquina real del usuario (Windows + PowerShell), no solo leyendo texto. Veredicto: **aprobada con cambios**. Se confirmó **A4** (el backend no arrancaba en Windows) y aparecieron A9, A14, A15 nuevos; además A1, A2/A3, A5, A6, A7, A8, A10, A12 quedaban pendientes de rondas anteriores de revisión de código.
+
+| Hallazgo | Severidad | Resuelto en | Estado y resolución |
+| --- | --- | --- | --- |
+| A4 (guard ESM no cross-platform) | Alto | `backend/src/app.ts`, `backend/tests/app.test.ts` | Comparación manual de strings reemplazada por `pathToFileURL(process.argv[1]).href`; test `app.inject()` añadido para cubrir el handler sin depender del guard — **resuelto** |
+| A9 (TypeScript 5.9.3 no soportado por `@typescript-eslint` 7.x) | Alto | `backend/package.json`, `frontend/package.json` | `@typescript-eslint/eslint-plugin` y `/parser` actualizados a 8.x (opción b, recomendada); `npm run lint` verificado sin warning en ambos workspaces — **resuelto** |
+| A1 (`PotRound.winnerSpinId` sin `@relation`) | Medio | `backend/prisma/schema.prisma` | Añadida `winnerSpin Spin? @relation("RoundWinnerSpin", ...)` y el lado inverso `roundWon` en `Spin`; la relación existente `round`/`spins` se nombró `RoundSpins` (obligatorio al haber dos relaciones entre los mismos modelos) — **resuelto**, no verificable con `prisma validate` en este entorno (ver nota abajo) |
+| A2/A3 (sin validación de positividad en `game-rules.ts`) | Medio/Bajo | `backend/src/config/game-rules.ts`, `backend/tests/game-rules.test.ts` | `parsePositiveIntEnv` (para `GOLD_PROBABILITY_DENOMINATOR`) y `parseNonNegativeIntEnv` (para `POT_MINIMUM`, `CONTRIBUTION_AMOUNT`); 5 tests nuevos cubren los casos válidos e inválidos — **resuelto** |
+| A5 (Dockerfiles no auditables) | Medio | — | Pegados íntegros en la respuesta de entrega, sin modificar (ya eran coherentes con el `docker-compose.yml` actualizado) — **resuelto** |
+| A6 (falta `PORT` en `.env.example`) | Bajo | `.env.example` | `PORT=3000` añadido — **resuelto** |
+| A7 (falta `DATABASE_URL` en `.env.example`) | Bajo | `.env.example` | Añadida, comentada como pendiente de uso real en V0.3 — **resuelto** |
+| A8 (línea `node_modules/` duplicada en `.gitignore`) | Bajo | `.gitignore` | Duplicado eliminado — **resuelto** |
+| A10 (vulnerabilidades de dependencias) | Medio (documentar) | `CHANGELOG.md` | NO corregidas en esta ronda (podrían romper cosas sin red de pruebas); documentadas como pendientes para V0.7, cuando el CI añade escaneo de dependencias (ya previsto en N) — **documentado, diferido a V0.7 por decisión explícita** |
+| A12 (README sin paso de copiar `.env`) | Medio | `README.md` | Paso `Copy-Item .env.example .env` añadido como obligatorio antes de cualquier comando de Docker Compose, con explicación de por qué — **resuelto** |
+| A14 (`DB_USER`/`DB_PASSWORD` vacíos rompen Postgres) | Medio | `.env.example`, `README.md` | Valores dummy `dev`/`dev`, comentados como no aptos para producción; README aclara que son solo para desarrollo local — **resuelto** |
+| A15 (`env_file: .env` propaga secretos al frontend) | Bajo | `docker-compose.yml` | Sustituido por `environment:` explícito por servicio (opción a): backend solo recibe las variables de `game-rules.ts` + `NODE_ENV`/`PORT`; frontend no recibe ninguna — **resuelto** |
+
+**Nota de verificación**: `npx prisma validate` no pudo ejecutarse en el entorno de esta entrega — `binaries.prisma.sh` (de donde Prisma descarga su query engine) no es alcanzable desde este contenedor. La corrección de A1 se revisó manualmente contra la sintaxis de Prisma (cada relación nombrada aparece exactamente dos veces, una en cada lado); se recomienda que el usuario o DeepSeek ejecuten `npx prisma validate` en un entorno con acceso de red completo antes de dar el hallazgo por cerrado con evidencia automatizada.
+
 ## M. Estado de cierre
 
-**Estado en esta entrega (V0.2)**
+**Estado en esta entrega (V0.2.1)**
 
-La especificación V0.1.6 fue auditada y aprobada por DeepSeek (aprobada con cambios menores). Las tres preguntas de negocio que quedaban bloqueantes —J.1, J.2, J.3— fueron cerradas por el product owner, con recomendaciones de implementación del auditor (ver J, L.7). Todas las auditorías de spec anteriores (V0.1 → V0.1.1: C1–C5, H1–H6, M1–M6, B1–B4; V0.1.1 → V0.1.2: A1–A5, M1–M5, B1–B3; V0.1.2 → V0.1.3: N1–N11; V0.1.3 → V0.1.4: N12, N14, N15; V0.1.4 → V0.1.5: N13, N16, N17, N18; V0.1.5 → V0.1.6: N20, N21, N22) se mantienen resueltas. Con el cierre de J.1–J.3, **A4** y **H6** quedan también cerrados por completo (ver L.7) — ya no queda ninguna salvedad "parcial" en el documento.
+La especificación V0.1.6 fue auditada y aprobada por DeepSeek. Las tres preguntas de negocio que quedaban bloqueantes —J.1, J.2, J.3— fueron cerradas por el product owner en V0.2, con recomendaciones de implementación del auditor (ver J, L.7). V0.2.1 corrige los hallazgos A1–A15 de la verificación en máquina real de V0.2 (ver L.9); ninguno introduce lógica de negocio nueva. Todas las auditorías de spec anteriores (V0.1 → V0.1.1: C1–C5, H1–H6, M1–M6, B1–B4; V0.1.1 → V0.1.2: A1–A5, M1–M5, B1–B3; V0.1.2 → V0.1.3: N1–N11; V0.1.3 → V0.1.4: N12, N14, N15; V0.1.4 → V0.1.5: N13, N16, N17, N18; V0.1.5 → V0.1.6: N20, N21, N22; V0.2: desincronización de K/N corregida) se mantienen resueltas. **A4** y **H6** siguen cerrados por completo (ver L.7).
 
-Esta entrega V0.2 es la primera con código real (esqueleto de repositorio, sin lógica de negocio; ver el resumen de entrega para el detalle de qué se creó).
+V0.2 fue la primera entrega con código real; V0.2.1 es la primera ronda de correcciones sobre ese código, tras verificación en una máquina real del usuario (ver el resumen de entrega para el detalle).
 
 **Sin pendientes bloqueantes de negocio**
 
-Ninguna pregunta de negocio sigue abierta. Lo que resta antes de V1.0 son decisiones ya identificadas como diferidas y no bloqueantes (abajo), y la implementación real en V0.3+.
+Ninguna pregunta de negocio sigue abierta. Lo que resta antes de V1.0 son decisiones ya identificadas como diferidas y no bloqueantes (abajo), la implementación real en V0.3+, y las vulnerabilidades de dependencias documentadas como pendientes para V0.7 (A10, ver L.9).
 
 **Fuera de alcance (diferido, no bloqueante)**
 
@@ -544,11 +568,11 @@ Ninguna pregunta de negocio sigue abierta. Lo que resta antes de V1.0 son decisi
 - Sanciones de cuenta ante manipulación detectada.
 - Rotación operativa de la contraseña de base de datos.
 - Endpoint de reenvío de verificación de email y endpoint para fijar `display_name` (sus políticas ya están modeladas en E, pero los endpoints no se añaden sin que se pidan).
-- Archivo canónico de versión en `docs/spec/` (recomendación estructural de DeepSeek, diferida — ver N).
+- Vulnerabilidades de dependencias de desarrollo (A10): documentadas en `CHANGELOG.md`, se abordan de forma sistemática en V0.7 cuando el CI añade escaneo de dependencias (ver N).
 
 **Veredicto**
 
-Ver L.8 para el veredicto de DeepSeek sobre esta entrega.
+Ver L.8 (spec V0.2) y L.9 (implementación V0.2.1) para el veredicto de DeepSeek sobre esta entrega.
 
 ## N. Estrategia de repositorio y versionado
 
@@ -600,14 +624,14 @@ A partir de esta entrega, el proyecto se versiona en GitHub como un monorepo.
 
 **Estrategia de ramas**: **trunk-based**, con ramas cortas `feat/<nombre>` fusionadas a `main` por PR. Se descarta `main` + `develop`: el equipo es pequeño (Claude como desarrollador, DeepSeek como auditor) y el monolito modular se despliega como una sola unidad — una rama `develop` de larga vida solo añadiría un punto extra de divergencia y merge sin aportar aislamiento real, dado que no hay múltiples equipos ni releases paralelos que coordinar.
 
-**Convención de tags**: formato `vX.Y.Z`. Cada versión de la especificación se taguea igual que se numera: V0.1 → `v0.1.0`, V0.1.1 → `v0.1.1`, V0.1.2 → `v0.1.2`, … hasta V0.1.6 → `v0.1.6`. V0.2 (primer código) se tagueó `v0.2.0`; a partir de ahí, el número menor (`Y`) sigue la versión del roadmap (`v0.2.0`, `v0.3.0`…) y el número de parche (`Z`) queda reservado para correcciones dentro de esa versión de código.
+**Convención de tags**: formato `vX.Y.Z`. Cada versión de la especificación se taguea igual que se numera: V0.1 → `v0.1.0`, V0.1.1 → `v0.1.1`, V0.1.2 → `v0.1.2`, … hasta V0.1.6 → `v0.1.6`. V0.2 (primer código) se tagueó `v0.2.0`; correcciones puntuales sobre esa misma versión, como esta ronda, incrementan el número de parche (`v0.2.1`, `v0.2.2`…). A partir de una versión de código con lógica de negocio nueva, el número menor (`Y`) sigue la versión del roadmap (`v0.2.0`, `v0.3.0`…) y el de parche (`Z`) queda para correcciones dentro de esa versión.
 
 **Reglas de PR**: no se hace merge a `main` si la CI falla. Toda PR requiere revisión: Claude como desarrollador abre la PR; DeepSeek revisa como auditor cuando la PR toca áreas sensibles (auth, spin, pot, RNG, seguridad) o cuando aplica por el roadmap (ver H).
 
 **Archivos obligatorios en la raíz desde V0.2** (contenido a definir cuando se creen, no ahora):
 
 - `README.md` — qué es el proyecto, cómo levantarlo localmente, enlace a `docs/spec/`.
-- `LICENSE` — licencia del proyecto (a decidir en V0.2).
+- `LICENSE` — MIT (decidida en V0.2).
 - `.gitignore` — ver lista mínima abajo.
 - `.env.example` — ver lista de variables abajo.
 - `.editorconfig` — reglas básicas de indentación/encoding compartidas entre editores.

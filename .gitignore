@@ -12,4 +12,3 @@ __pycache__/
 .pytest_cache/
 postgres-data/
 *.tsbuildinfo
-node_modules/

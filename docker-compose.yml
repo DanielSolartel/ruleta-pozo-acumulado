@@ -21,9 +21,17 @@ services:
       context: .
       dockerfile: infra/docker/Dockerfile.backend
     restart: unless-stopped
-    env_file: .env
+    # Solo las variables que el backend realmente usa en V0.2 (ver
+    # src/config/game-rules.ts y src/app.ts). Nada de secretos de BD/JWT/
+    # email: ese código no existe todavía (V0.3+). Se pasan explícitas en
+    # vez de env_file: .env para no propagar secretos que este servicio no
+    # necesita (resuelve A15).
     environment:
-      DB_HOST: postgres
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: ${PORT:-3000}
+      POT_MINIMUM: ${POT_MINIMUM:-100}
+      CONTRIBUTION_AMOUNT: ${CONTRIBUTION_AMOUNT:-1}
+      GOLD_PROBABILITY_DENOMINATOR: ${GOLD_PROBABILITY_DENOMINATOR:-100000}
     ports:
       - "3000:3000"
     depends_on:
@@ -38,7 +46,8 @@ services:
       context: .
       dockerfile: infra/docker/Dockerfile.frontend
     restart: unless-stopped
-    env_file: .env
+    # El frontend no necesita ninguna variable de entorno en V0.2 (no lee
+    # secretos de BD/JWT/email; resuelve A15).
     ports:
       - "5173:5173"
     depends_on:
