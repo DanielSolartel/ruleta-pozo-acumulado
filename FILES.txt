@@ -4,6 +4,7 @@
 .gitignore
 CHANGELOG.md
 CONTRIBUTING.md
+FILES.txt
 LICENSE
 README.md
 backend/.eslintrc.cjs
@@ -20,6 +21,7 @@ backend/src/modules/pot/index.ts
 backend/src/modules/spin/index.ts
 backend/src/shared/.gitkeep
 backend/tests/.gitkeep
+backend/tests/app.test.ts
 backend/tests/game-rules.test.ts
 backend/tsconfig.json
 docker-compose.yml
