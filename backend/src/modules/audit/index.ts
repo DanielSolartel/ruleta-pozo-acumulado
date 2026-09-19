@@ -1,5 +1,6 @@
-// Módulo "audit" — TODO V0.3
-// Ver docs/spec/ sección C (monolito modular) para el rol de este módulo.
-// Sin lógica de negocio en V0.2: solo el esqueleto del módulo.
-
-export {};
+// Módulo "audit" — en V0.3 solo contiene el mailer de desarrollo
+// (mailer.ts), usado por el módulo auth para el flujo de verificación de
+// email. El resto de responsabilidades de auditoría (logs estructurados,
+// ver spec C "Observabilidad") sigue sin implementación de código propia.
+export { getMailer, setMailerForTesting } from "./mailer";
+export type { Mailer, EmailMessage } from "./mailer";

@@ -9,19 +9,31 @@
     "start": "node dist/app.js",
     "lint": "eslint . --ext .ts",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "tsx prisma/seed.ts",
+    "prisma:reset": "prisma migrate reset"
   },
   "dependencies": {
-    "fastify": "^4.28.1"
+    "@fastify/cookie": "^9.4.0",
+    "@fastify/rate-limit": "^9.1.0",
+    "@prisma/client": "^5.19.1",
+    "argon2": "^0.45.1",
+    "fastify": "^4.28.1",
+    "jose": "^6.2.12",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@types/node": "^20.14.15",
     "@typescript-eslint/eslint-plugin": "^8.8.0",
     "@typescript-eslint/parser": "^8.8.0",
     "eslint": "^8.57.0",
     "prisma": "^5.19.1",
     "tsx": "^4.19.0",
     "typescript": "^5.5.4",
-    "vitest": "^2.0.5",
-    "@types/node": "^20.14.15"
+    "vitest": "^2.0.5"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   }
 }

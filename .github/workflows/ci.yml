@@ -38,6 +38,14 @@ jobs:
           cache-dependency-path: ${{ matrix.workspace }}/package-lock.json
       - working-directory: ${{ matrix.workspace }}
         run: npm ci
+      # El backend importa tipos generados por Prisma (@prisma/client) —
+      # sin este paso, tsc falla con "no exported member 'User'" aunque el
+      # código esté bien. No necesita una base de datos real, solo el
+      # schema para generar los tipos.
+      - name: Generate Prisma Client (solo backend)
+        if: matrix.workspace == 'backend'
+        working-directory: backend
+        run: npx prisma generate
       - working-directory: ${{ matrix.workspace }}
         run: npm run typecheck
 
@@ -60,6 +68,15 @@ jobs:
     strategy:
       matrix:
         workspace: [backend, frontend]
+    env:
+      # Solo lo usa el workspace backend (tests de integración, ver
+      # tests/integration/helpers.ts); se declara a nivel de job por
+      # simplicidad, no tiene efecto en frontend.
+      DATABASE_URL: postgresql://test:test@localhost:5432/ruleta_pozo_acumulado_test
+      NODE_ENV: test
+      JWT_SECRET: ci-test-jwt-secret-not-for-production
+      REFRESH_TOKEN_PEPPER: ci-test-refresh-pepper-not-for-production
+      EMAIL_TOKEN_PEPPER: ci-test-email-pepper-not-for-production
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -69,5 +86,11 @@ jobs:
           cache-dependency-path: ${{ matrix.workspace }}/package-lock.json
       - working-directory: ${{ matrix.workspace }}
         run: npm ci
+      - name: Generate Prisma Client y aplicar migraciones (solo backend)
+        if: matrix.workspace == 'backend'
+        working-directory: backend
+        run: |
+          npx prisma generate
+          npx prisma migrate deploy
       - working-directory: ${{ matrix.workspace }}
         run: npm test

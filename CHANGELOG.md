@@ -2,6 +2,49 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/). Versionado según [Convención de tags](./CONTRIBUTING.md#tags-y-versiones).
 
+## [v0.3.0] - 2026-09-19
+
+Primera entrega con lógica de negocio real: autenticación completa y endpoints públicos de información del juego. `POST /api/spins` (el giro, con RNG y transacción SERIALIZABLE) queda deliberadamente fuera de esta entrega — ver la nota de divergencia de alcance más abajo.
+
+### Divergencia de alcance respecto al roadmap (sección H de la spec)
+
+La spec agrupaba auth + endpoint de giro en una sola V0.3. Por recomendación de DeepSeek, se divide en dos entregas auditables:
+
+- **V0.3 (esta)**: migración inicial de Prisma, módulo de auth completo (5 endpoints), `GET /api/game-info`, `GET /api/pot`, seed de la primera ronda.
+- **V0.3.1 (próxima)**: `POST /api/spins` con RNG, transacción SERIALIZABLE, idempotencia, cierre/apertura de ronda.
+
+Justificación: auth (sesiones, cookies, CSRF) y spin (transacción, RNG, concurrencia) son dos superficies de ataque muy distintas; auditarlas juntas en una sola ronda habría sido impracticable con la profundidad que exige la spec (G, I). Documentado también en H (nota al pie) y en `docs/spec/especificacion-tecnica.md`, L.10.
+
+### Added
+
+- **Migración inicial de Prisma** (`backend/prisma/migrations/20260918000000_init/`): las 7 tablas del modelo E, con `UNIQUE(user_id, game_day)`, `UNIQUE(winner_spin_id)`, los índices únicos parciales `one_open_round` y `one_active_token_per_user`, y `ON DELETE RESTRICT` en todas las FKs de historial.
+- **`backend/prisma/seed.ts`**: crea la primera ronda activa (`initial_amount = POT_MINIMUM`), idempotente.
+- **Módulo de auth** (`backend/src/modules/auth/`): `password.ts` (política + Argon2id, parámetros OWASP 2024), `jwt.ts` (HS256 vía `jose`, con ventana de rotación `JWT_SECRET_PREVIOUS`), `tokens.ts` (tokens opacos + hash con pepper, peppers distintos para refresh y verificación de email), `schemas.ts` (validación Zod), `middleware.ts` (orden N14/N15), `rateLimitByKey.ts` (limitador secundario en memoria por email/cuenta, complementario a `@fastify/rate-limit`), `repository.ts` (acceso a datos vía Prisma), `routes.ts` (los 5 endpoints: register, verify, login, refresh, logout).
+- **`backend/src/modules/audit/mailer.ts`**: mailer de desarrollo — imprime a stdout en `NODE_ENV=development`, lanza error explícito fuera de development. Sin proveedor de email real (decisión explícita de esta ronda).
+- **`backend/src/modules/pot/routes.ts`**: `GET /api/game-info` (público, sin DB) y `GET /api/pot` (público, ronda activa + `currentAmount`).
+- **Tests unitarios**: `password.test.ts` (13), `jwt.test.ts` (7) — verificados pasando de verdad.
+- **Tests de integración** (`backend/tests/integration/`): los 5 endpoints de auth, `pot.test.ts`, `game-info.test.ts`, usando `app.inject()` contra una Postgres real (ver decisión sobre testcontainers más abajo).
+- **`.env.example`**: `DATABASE_URL`, `EMAIL_TOKEN_PEPPER` añadidos.
+- **CI**: el job `typecheck` genera el cliente Prisma antes de tipar (solo backend); el job `test` genera el cliente y aplica `prisma migrate deploy` contra el servicio Postgres antes de correr los tests.
+
+### Fixed durante el desarrollo (hallazgos propios, no de auditoría externa)
+
+- **Reinicio de `failed_login_attempts` al expirar `locked_until`**: la implementación inicial solo reiniciaba el contador tras un login exitoso: un intento con contraseña incorrecta justo después de que expirara un bloqueo incrementaba desde el contador viejo (5→6) y volvía a bloquear la cuenta de inmediato con un solo intento. Corregido para reiniciar el contador en cuanto se detecta `locked_until` vencido, antes de evaluar la contraseña de ese intento (cumple el requisito (b) de la spec).
+- **`@prisma/client` en v7 mientras el CLI `prisma` está fijado en `^5.19.1`**: `npm install @prisma/client` sin versión explícita instaló la última (7.x). Fijado a `^5.19.1` para que coincidan.
+
+### Decisiones de esta ronda
+
+- **Testcontainers no se usa** (la spec ofrecía elegir entre testcontainers o el servicio Postgres de docker-compose/CI con una base separada): testcontainers requiere Docker, no disponible en el entorno donde se preparó esta entrega. Se usa la alternativa explícitamente autorizada por la spec: una base `ruleta_pozo_acumulado_test` separada, vía `DATABASE_URL`.
+- **`EMAIL_TOKEN_PEPPER` distinto de `REFRESH_TOKEN_PEPPER`**: son dos clases de secreto con ciclos de vida distintos (30 días viajando en cada request vs. 24h de un solo uso); reutilizar el mismo pepper acoplaría su rotación sin necesidad.
+- **Rate limiting secundario (por email/cuenta) implementado a mano** (`rateLimitByKey.ts`), en memoria, sin dependencia nueva: `@fastify/rate-limit` no soporta directamente dos límites independientes (IP + email) sobre la misma ruta. Limitación conocida: no sirve para múltiples instancias del backend sin moverlo a un store compartido — documentado, no una omisión.
+
+### Known issues / no verificado en esta entrega
+
+- **`prisma generate` / `prisma validate` / `prisma migrate dev` no pudieron ejecutarse** en el entorno donde se preparó esta entrega: `binaries.prisma.sh` (de donde Prisma descarga su motor de consultas) no es alcanzable ahí. La migración inicial se escribió a mano y se verificó con SQL directo contra una Postgres real (constraints e índices parciales probados con inserciones reales), pero **no** es el output literal de `prisma migrate dev` — revisar al correrlo por primera vez en un entorno con red completa.
+- Como consecuencia de lo anterior, **los tests de integración no pudieron ejecutarse de principio a fin** en esa misma entrega (`@prisma/client` no se generó, por lo que `PrismaClient` no se puede instanciar) — sí se ejecutaron los unitarios (`password.test.ts`, `jwt.test.ts`, 20/20 pasando).
+- Tiempo real del bloqueo de 15 minutos tras 5 intentos fallidos: no verificado en tiempo real (se probó la lógica de umbral y de expiración vía manipulación directa de `locked_until` en los tests, no esperando 15 minutos de reloj).
+- Vulnerabilidades de dependencias (A10, heredado de v0.2.1): sigue documentado como pendiente para V0.7.
+
 ## [v0.2.1] - 2026-09-17
 
 Correcciones puntuales encontradas en verificación en máquina real (Windows) por DeepSeek, antes de empezar V0.3. Sin lógica de negocio nueva.

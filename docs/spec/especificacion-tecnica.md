@@ -357,7 +357,7 @@ Convención de errores: `{ "error": { "code": string, "message": string, "detail
 | V0.1.6 | Correcciones de la sexta auditoría (N20–N22, ver L.6). Auditada por DeepSeek: aprobada con cambios menores. J.1–J.3 cerradas por el product owner tras esta versión (ver J, L.7). |
 | V0.2 | Arranque del repositorio: estructura de N, esqueleto de backend/frontend, schema de Prisma sin migrar, Docker Compose, CI mínima, primer tag `v0.2.0`. Sin lógica de negocio real todavía. |
 | V0.2.1 (esta) | Correcciones puntuales de verificacion en maquina real (Windows) por DeepSeek: A1-A15, ver L.9 - guard ESM cross-platform en app.ts, relacion FK explicita en Prisma, validacion de positividad en game-rules.ts, docker-compose sin secretos innecesarios en frontend, .env.example utilizable de verdad. Tag v0.2.1. Sin logica de negocio nueva. Pendiente de nueva auditoria de DeepSeek. |
-| V0.3 | Backend: registro/verificación/login/refresh/logout, endpoint de giro con RNG, ronda y constraint anti-doble-giro; primeras pruebas de carga ligeras; CI amplía a tests de concurrencia e idempotencia (ver N) |
+| V0.3 | **Divergencia de alcance justificada (ver L.10)**: la spec agrupaba auth + endpoint de giro en una sola V0.3. Por recomendación de DeepSeek, se divide en dos entregas auditables: **V0.3** (esta) cubre migración inicial de Prisma, módulo de auth completo (5 endpoints), `GET /api/game-info`, `GET /api/pot` y el seed de la primera ronda; **V0.3.1** (siguiente) cubre `POST /api/spins` con RNG, transacción SERIALIZABLE, idempotencia y cierre/apertura de ronda. Motivo: auth (sesiones, cookies, CSRF) y spin (transacción, RNG, concurrencia) son dos superficies de ataque muy distintas — auditarlas juntas habría sido impracticable con la profundidad que exigen G e I. |
 | V0.4 | Backend: lógica completa de pozo/ronda, registro histórico, pruebas de concurrencia (incluida la de A2: coherencia del RNG bajo reintento, ver I), pruebas de carga ampliadas |
 | V0.5 | Frontend: pantalla de giro conectada a la API real, animación basada en el resultado ya recibido del backend |
 | V0.6 | Frontend: vista de pozo en tiempo/casi tiempo real, historial de giros del usuario, historial de ganadores |
@@ -547,6 +547,21 @@ DeepSeek verificó la entrega V0.2 en una máquina real del usuario (Windows + P
 | A15 (`env_file: .env` propaga secretos al frontend) | Bajo | `docker-compose.yml` | Sustituido por `environment:` explícito por servicio (opción a): backend solo recibe las variables de `game-rules.ts` + `NODE_ENV`/`PORT`; frontend no recibe ninguna — **resuelto** |
 
 **Nota de verificación**: `npx prisma validate` no pudo ejecutarse en el entorno de esta entrega — `binaries.prisma.sh` (de donde Prisma descarga su query engine) no es alcanzable desde este contenedor. La corrección de A1 se revisó manualmente contra la sintaxis de Prisma (cada relación nombrada aparece exactamente dos veces, una en cada lado); se recomienda que el usuario o DeepSeek ejecuten `npx prisma validate` en un entorno con acceso de red completo antes de dar el hallazgo por cerrado con evidencia automatizada.
+
+### L.10 Auditoría V0.3 (primera entrega con lógica de negocio real)
+
+Pendiente: DeepSeek completará esta tabla tras su auditoría. Como referencia, esto es lo que la propia entrega documenta como no verificado o como decisión propia (detalle completo en `CHANGELOG.md`, entrada v0.3.0):
+
+| Área | Estado autodeclarado por la entrega (no un veredicto de auditoría) |
+| --- | --- |
+| Divergencia de alcance (V0.3 / V0.3.1) | Documentada arriba (H) y en `CHANGELOG.md`; recomendación de DeepSeek, no decisión unilateral |
+| Migración de Prisma | Escrita y verificada a mano contra Postgres real (SQL directo); **no** es el output literal de `prisma migrate dev` — `binaries.prisma.sh` no era alcanzable en el entorno de esta entrega |
+| Tests de integración | Escritos siguiendo el patrón `app.inject()`, pero no pudieron correr de principio a fin en esa misma entrega (`@prisma/client` no se generó) |
+| Tests unitarios | `password.test.ts` y `jwt.test.ts`, 20/20, sí corrieron y pasaron de verdad |
+| Testcontainers | No usado (requiere Docker, no disponible); se usó la alternativa que la propia spec autoriza (Postgres real vía `DATABASE_URL`) |
+| Bloqueo de 15 min tras 5 intentos fallidos | Lógica de umbral y expiración probada manipulando `locked_until` directamente, no esperando 15 minutos de reloj real |
+| `EMAIL_TOKEN_PEPPER` distinto de `REFRESH_TOKEN_PEPPER` | Decisión propia, justificada en `tokens.ts` y en el `CHANGELOG.md` |
+| Rate limiting secundario por email/cuenta | Implementado a mano, en memoria (`rateLimitByKey.ts`); no apto para múltiples instancias sin moverlo a un store compartido — limitación conocida |
 
 ## M. Estado de cierre
 
